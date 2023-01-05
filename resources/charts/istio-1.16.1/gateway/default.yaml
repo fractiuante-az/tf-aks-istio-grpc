@@ -1,0 +1,65 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: mygateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default ingress gateway
+  servers:
+  - port:
+      number: 443
+      name: https-helloworld
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: ingress-cert # This should match the Certificate secretName
+    hosts:
+    - cert-test.rp.az.gebit.cloud
+  - port:
+      number: 443
+      name: https-helloworld2
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: ingress-cert-other # This should match the Certificate secretName
+    hosts:
+    - cert-other.rp.az.gebit.cloud
+  - port:
+      number: 80
+      name: http-helloworld3
+      protocol: HTTP
+    hosts:
+    - cert-wild.rp.az.gebit.cloud
+  - port:
+      number: 443
+      name: https-helloworld3
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: ingress-cert-wild # This should match the Certificate secretName
+    hosts:
+    - cert-wild.rp.az.gebit.cloud
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: httpbin
+spec:
+  hosts:
+  - cert-wild.rp.az.gebit.cloud
+  - cert-test.rp.az.gebit.cloud
+  - cert-other.rp.az.gebit.cloud
+  gateways:
+  - mygateway
+  http:
+  - match:
+    - uri:
+        prefix: /status
+    - uri:
+        prefix: /delay
+    route:
+    - destination:
+        port:
+          number: 8000
+        host: httpbin
+
