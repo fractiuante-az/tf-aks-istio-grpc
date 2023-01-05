@@ -1,0 +1,58 @@
+name: "Install Prometheus CRDs"
+description: "This action installs the ARGO-CD/ Prometheus CRDs as a workarround for: "
+author: "fractiunate"
+inputs:
+  aks-cluster-name:
+    required: true
+    description: "Aks cluster name"
+  resource-group:
+    required: true
+    description: "Azure Resource group for the aks cluster"
+    default: ${{ github.token }}
+  checkout:
+    default: "false"
+    required: false
+    description: "checkout repo first"
+  crd-path:
+    default: "./prometheus-crds/"
+    required: false
+    description: "path to prometheus crd manifests"
+  token:
+    required: false
+    description: "Personal access token (PAT) used to fetch the repository."
+    default: ${{ github.token }}
+
+# fetch-depth: ${{ inputs.fetch-depth }}
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout the commit
+      if: inputs.checkout == 'true'
+      uses: actions/checkout@v3
+      with:
+        token: ${{ inputs.token }}
+    - name: "Install CRDs"
+      shell: bash
+      run: |
+        cluster_name="${{ inputs.aks-cluster-name }}"
+        resource_group="${{ inputs.resource-group }}"
+
+        # Login to az-cli
+        az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID && az account set -s $ARM_SUBSCRIPTION_ID
+        az aks get-credentials --admin --name $cluster_name --resource-group $resource_group --overwrite-existing; ak_get_creds_result=$?
+        kubectl cluster-info;logged_in="$?"
+
+        if [[ $ak_get_creds_result != "0" ]]; then
+          echo "ERROR: Cluster $cluster_name not found in Resource-Group $resource_group"
+          exit 1
+        else
+          # could be a for loop, but is a static work arround --> dont invest too much time
+          set +e
+          kubectl create -k "${{ inputs.crd-path }}" ;create_result=$?
+          set -e
+          if [[ $create_result != "0" ]]; then
+            kubectl delete -k "${{ inputs.crd-path }}"
+            kubectl create -k "${{ inputs.crd-path }}"
+          fi
+        fi
+      

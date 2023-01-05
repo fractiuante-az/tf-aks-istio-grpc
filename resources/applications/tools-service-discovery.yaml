@@ -1,0 +1,18 @@
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: tools-service-discovery-pod-reader
+#   namespace: argocd
+# spec:
+#   destination:
+#     namespace: rp
+#     server: https://kubernetes.default.svc
+#   project: default
+#   source:
+#     path: ./manifests/service-discovery-v1/
+#     repoURL: git@github.com:<ORG>/<REPO>.git
+#     targetRevision: main
+#   syncPolicy:
+#     automated:
+#       selfHeal: true
+#       prune: true

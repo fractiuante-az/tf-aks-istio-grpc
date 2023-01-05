@@ -1,0 +1,25 @@
+##     yq-ref: https://stackoverflow.com/questions/72787350/yq-replace-values-of-subfields-of-list-based-on-list-of-values yq explanation
+#
+name: 'Replace Argo-CD targetRevision'
+description: 'This action replaces the target revision for argo-applications in argocds helm ../values-override.yaml config.'
+author: 'fractiunate'
+inputs:
+    target-revision:
+        required: false
+        description: 'Target Branch, default=github.default_branch'
+        default: "${{ github.event.repository.default_branch }}"
+    path-to-values-override-yaml-file:
+        required: false
+        description: 'Path to argo-cd-apps .yaml file'
+        default: "${GITHUB_WORKSPACE}/argocd/argocd-install/values-override.yaml"
+runs:
+    using: 'composite'
+    steps:
+        - name: replace-targetRevision-fields
+          shell: bash
+          run: |
+            target_revision="${{ inputs.target-revision }}"
+            REVISION=${target_revision} yq e '( .server.additionalApplications[] |
+              select(.name == ("argocd", "argocd-projects", "argocd-tools-aks-apps")) |
+              .source.targetRevision )
+              |= env(REVISION)' -i argocd/argocd-install/values-override.yaml
